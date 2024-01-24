@@ -4,18 +4,27 @@ namespace App\Services\Movies;
 
 use InvalidArgumentException;
 use App\Services\Movies\MovieInterface;
+use App\Services\Movies\BarMovieService;
+use App\Services\Movies\BazMovieService;
+use App\Services\Movies\FooMovieService;
 
 class MovieServiceFactory
 {
-    public static function create(string $system): ?MovieInterface
+    public function __construct(
+        private FooMovieService $fooMovieService,
+        private BarMovieService $barMovieService,
+        private BazMovieService $bazMovieService,
+    ) {}
+
+    public function create(string $system): ?MovieInterface
     {
         switch ($system) {
             case 'Foo':
-                return new FooMovieService();
+                return $this->fooMovieService;
             case 'Bar':
-                return new BarMovieService();
+                return $this->barMovieService;
             case 'Baz':
-                return new BazMovieService();
+                return $this->bazMovieService;
             default:
                 throw new InvalidArgumentException("Invalid system: $system");
         }

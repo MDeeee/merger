@@ -10,15 +10,21 @@ use App\Services\Authenticator\AuthenticatorInterface;
 
 class AuthenticatorFactory
 {
-    public static function create(string $company): AuthenticatorInterface
+    public function __construct(
+        private FooAuthenticator $fooAuthenticator,
+        private BarAuthenticator $barAuthenticator,
+        private BazAuthenticator $bazAuthenticator,
+    ) {}
+
+    public function create(string $company): AuthenticatorInterface
     {
         switch (substr($company, 0, 4)) {
             case 'FOO_':
-                return new FooAuthenticator();
+                return $this->fooAuthenticator;
             case 'BAR_':
-                return new BarAuthenticator();
+                return $this->barAuthenticator;
             case 'BAZ_':
-                return new BazAuthenticator();
+                return $this->bazAuthenticator;
             default:
                 throw new InvalidArgumentException('Invalid company');
         }
