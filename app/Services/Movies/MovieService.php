@@ -3,24 +3,29 @@
 namespace App\Services\Movies;
 
 use App\Enums\MovieSystems;
-use App\Services\Movies\MovieServiceFactory;
-use App\Services\Movies\ServiceUnavailableException;
+use Illuminate\Support\Str;
+use App\Exceptions\ServiceUnavailableException;
 
 class MovieService
 {
-    public function __construct(
-        private MovieServiceFactory $movieServiceFactory,
-        private int $maxRetries = 3,
-        private int $retryDelay = 5000,// millisecond
-        private int $cacheDuration = 15,// minutes
-        private string $cachePrefix = 'movie_titles_'
-    ) {}
+    private array $movieDataProviders;
+    private int $maxRetries;
+    private int $retryDelay;
+    private int $cacheDuration;
+    private string $cachePrefix;
+
+    public function __construct(array $movieDataProviders) {
+        $this->movieDataProviders = $movieDataProviders;
+        $this->maxRetries = 3;
+        $this->retryDelay = 5000;// millisecond
+        $this->cacheDuration = 15;// minutes
+        $this->cachePrefix = 'movie_titles_';
+    }
 
     public function retrieveAndCombineTitles(): ?array
     {
         $titles = [];
 
-        // Retrieve titles from each system with retries and caching
         foreach (MovieSystems::cases() as $system) {
             $titles = array_merge($titles, $this->retrieveTitlesWithRetriesAndCache($system->value));
         }
@@ -30,39 +35,24 @@ class MovieService
 
     private function retrieveTitlesWithRetriesAndCache(string $system): ?array
     {
-        $cacheKey = $this->cachePrefix . $system;
+        $cacheKey = Str::of($this->cachePrefix)->append($system);
 
-        $titles = cache()->get($cacheKey);
-
-        if (!empty($titles)) return $titles;
-
-        $titles = $this->retrieveTitlesWithRetries($system);
-
-        cache()->put($cacheKey, $titles, now()->addMinutes($this->cacheDuration));
-
-        return $titles;
+        return cache()->remember($cacheKey, $this->cacheDuration, function () use ($system) {
+            return $this->retrieveTitlesWithRetries($system);
+        });
     }
 
     private function retrieveTitlesWithRetries(string $system): ?array
     {
-        for ($attempt = 1; $attempt <= $this->maxRetries; $attempt++) {
+        return retry($this->maxRetries, function () use ($system) {
 
-            try {
+            $movieService = $this->movieDataProviders[$system];
 
-                $movieService = $this->movieServiceFactory->create($system);
+            return $movieService->getTitles();
 
-                return $movieService->getTitles();
+        }, $this->retryDelay / 1000, function ($e) {
 
-            } catch (ServiceUnavailableException $e) {
-
-                if ($attempt < $this->maxRetries) {
-
-                    usleep($this->retryDelay);
-
-                } else {
-                    throw $e;
-                }
-            }
-        }
+            return $e instanceof ServiceUnavailableException;
+        });
     }
 }

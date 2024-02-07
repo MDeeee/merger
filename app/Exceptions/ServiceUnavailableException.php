@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Movies;
+namespace App\Exceptions;
 
 use Exception;
 

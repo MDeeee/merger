@@ -2,6 +2,7 @@
 
 namespace App\Services\Authenticator;
 
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use App\Services\Authenticator\BarAuthenticator;
 use App\Services\Authenticator\BazAuthenticator;
@@ -16,17 +17,15 @@ class AuthenticatorFactory
         private BazAuthenticator $bazAuthenticator,
     ) {}
 
-    public function create(string $company): AuthenticatorInterface
+    public function create(string $company): AuthenticatorInterface|InvalidArgumentException
     {
-        switch (substr($company, 0, 4)) {
-            case 'FOO_':
-                return $this->fooAuthenticator;
-            case 'BAR_':
-                return $this->barAuthenticator;
-            case 'BAZ_':
-                return $this->bazAuthenticator;
-            default:
-                throw new InvalidArgumentException('Invalid company');
-        }
+        $companyName = Str::upper($company);
+
+        return match (Str::substr($companyName, 0, 4)) {
+            'FOO_'  => $this->fooAuthenticator,
+            'BAR_'  => $this->barAuthenticator,
+            'BAZ_'  => $this->bazAuthenticator,
+            default => throw new InvalidArgumentException('Invalid company'),
+        };
     }
 }

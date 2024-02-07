@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
 use Illuminate\Http\JsonResponse;
 use App\Services\Movies\MovieService;
+use App\Exceptions\ServiceUnavailableException;
 
 class MovieController extends Controller
 {
@@ -20,7 +20,7 @@ class MovieController extends Controller
 
             return response()->json($titles, 200);
 
-        } catch (Exception $e) {
+        } catch (ServiceUnavailableException $e) {
 
             return response()->json(['status' => 'failure', 'message' => $e->getMessage()], 500);
         }

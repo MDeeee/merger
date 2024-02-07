@@ -9,12 +9,13 @@ use App\Services\Authenticator\AuthenticatorInterface;
 
 class FooAuthenticator implements AuthenticatorInterface
 {
+    public function __construct(private AuthWS $authService) {}
+
     public function authenticate(string $login, string $password): bool
     {
         try {
-            $authService = new AuthWS();
 
-            $authService->authenticate($login, $password);
+            $this->authService->authenticate($login, $password);
 
         } catch (Exception $e) {
 
